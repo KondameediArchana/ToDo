@@ -19,17 +19,19 @@ def index(request):
 def history(request,userName):
     data = ToDo.objects.filter(user_name=userName, status="Completed")
     tasks = []
-    files = []
+    file_list = []
     description = []
 
     for item in data:
         tasks.append(item.task)
-        files.append(item.file.path) 
+        file_url = request.build_absolute_uri(item.file.url)
+        file_list.append(file_url)
+        # files.append(item.file.path) 
         description.append(item.description)
 
     response_data = {
         "tasks": tasks,
-        "files": files,
+        "files": file_list,
         "description": description,
     }
     return response_data
