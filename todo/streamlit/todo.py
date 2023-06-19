@@ -79,11 +79,12 @@ if 'logged_in' in st.session_state and st.session_state['logged_in']:
     token = st.session_state['token']  
     UserName = st.session_state['username']
     st.markdown("<h1 style='text-align: center; '>To Do</h1> <br>", unsafe_allow_html=True)
+    
     col1,col2 = st.columns([8,2])
     with col1:
         selected = option_menu(
             menu_title="",
-            options=["Todo","History",],
+            options=["Tasks list","History",],
             icons=["card-checklist","journal-text"],
             menu_icon="cast",
             default_index=0,
@@ -91,20 +92,15 @@ if 'logged_in' in st.session_state and st.session_state['logged_in']:
         )
     
             
-        if selected == "Todo":
+        if selected == "Tasks list":
             
             a,b = st.columns([3,7])
             with a:
                 with st.form(key="form",clear_on_submit=True):
-                # if 'session_state' not in st.session_state:
-                #     st.session_state['session_state'] = {'task': ''}
+              
                     task = st.text_input("Tasks",key='task')#,value=st.session_state['session_state']['task']
                     
-                    # if 'session_state' in st.session_state:
-                    #         st.session_state['session_state'] = {'task': task}
-                    # else:
-                    #     st.session_state['session_state'] = {'task': ''}
-                    
+                   
                     add = st.form_submit_button("ADD")    
                 
             with b:
