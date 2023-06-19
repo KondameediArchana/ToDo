@@ -1,18 +1,22 @@
-# from flask import request
-from matplotlib import pyplot as plt
-from rest_framework import status
 import streamlit as st
 import requests
+import datetime
+from datetime import datetime
 import pandas as pd
-import os
-import altair as alt
-import streamlit as st
 from streamlit_option_menu import option_menu
+from django.core.serializers import serialize
+from django.http import HttpResponse
+from streamlit_modal import Modal
 
-st.set_page_config(layout="wide")
-session_state=st.session_state
-local_host = 'http://127.0.0.1:8000/'
+
+st.set_page_config(layout="wide",initial_sidebar_state="expanded",)
+
+local_host = 'http://localhost:8000/'
+
+session_state = st.session_state
+
 def get_jwt_token(username, password):
+    
     url = local_host + 'api/token/'
     data = {
         'username': username,
@@ -27,122 +31,186 @@ def get_jwt_token(username, password):
         return access_token
     else:
         return None
+    
+
 def get_data(token):
     url = local_host + 'data/'
     headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        return response.json()
+        return token
     else:
         return None
 
-def login_page():
-    st.markdown("<h1 style='text-align: center; '>Login Page</h1> <br>", unsafe_allow_html=True)
+
+if 'logged_in' not in st.session_state or not st.session_state['logged_in']:
+    
+    st.markdown("<h1 style='text-align: center; '>LOGIN</h1> <br>", unsafe_allow_html=True)
     col1,col2,col3 = st.columns(3)
     with col1:
         st.write("")
     with col2:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        col1, col2,col3,col4,col5 = st.columns(5)
-        with col3:
+        col1, col2 ,col3= st.columns(3)
+        with col2:
             login_button = st.button("Login")
 
     if login_button:
         token = get_jwt_token(username, password)
-        st.write(token)
+        
         if token:
-            # st.success('Authentication successful!')
-            # st.write('JWT Token:', token)
             data = get_data(token)
-            st.write(data)
+            
             if data:
-                return True  
+                st.session_state['logged_in'] = True
+                st.session_state['token'] = token
+                st.session_state['username'] = username
+                st.experimental_rerun()
+            else:
+                 st.write("You do not have permission to access the next page")
 
         else:
             st.error("Invalid username or password.")
-            return False 
-        
-        
-if 'logged_in' not in st.session_state or not st.session_state['logged_in']:
-    login_success = login_page()
+            
+    
 
-    if login_success:
-        st.session_state['logged_in'] = True
-        st.experimental_rerun()
-else:
-    
+if 'logged_in' in st.session_state and st.session_state['logged_in']:
+    token = st.session_state['token']  
+    UserName = st.session_state['username']
     st.markdown("<h1 style='text-align: center; '>To Do</h1> <br>", unsafe_allow_html=True)
-    
-    
-    col1,col2,col3,col4= st.columns(4)
+    col1,col2 = st.columns([8,2])
     with col1:
         selected = option_menu(
-            menu_title = "ToDo Task",
-            options = ["To-Do","History"],
-            orientation= "horizontal"
+            menu_title="",
+            options=["Todo","History",],
+            icons=["card-checklist","journal-text"],
+            menu_icon="cast",
+            default_index=0,
+            orientation="horizontal",
         )
-        if selected == "History":
-            response = requests.get("http://127.0.0.1:8000/Details/")
-            if response.status_code==200:
-                df = response.json()
-                filtered_data = [obj for obj in df if obj["task_status"] == "Complete"]
-                df=pd.DataFrame(filtered_data)
-                st.write(df)
+    
+            
+        if selected == "Todo":
+            
+            a,b = st.columns([3,7])
+            with a:
+                with st.form(key="form",clear_on_submit=True):
+                # if 'session_state' not in st.session_state:
+                #     st.session_state['session_state'] = {'task': ''}
+                    task = st.text_input("Tasks",key='task')#,value=st.session_state['session_state']['task']
                     
-        if selected == "To-Do":
-            st.subheader("Add Task")
-            user =st.text_input("user")
-            Task= st.text_input("Task Title")
-            # Description = st.text_input("Description")
-            task_status = st.selectbox('status',['Pending','Complete','In-Progress'])
-            
-            if task_status == 'Complete':
+                    # if 'session_state' in st.session_state:
+                    #         st.session_state['session_state'] = {'task': task}
+                    # else:
+                    #     st.session_state['session_state'] = {'task': ''}
+                    
+                    add = st.form_submit_button("ADD")    
                 
-                uploaded_file = st.file_uploader("please upload a file")
-                if uploaded_file is not None:
-                    file_contents = uploaded_file.read()
-                    save_directory = "/home/archana/Project/folder"
-                    file_name = uploaded_file.name
-                    save_path = os.path.join(save_directory,file_name)
-                    with open(save_path, "wb") as f:
-                        f.write(file_contents)
-                        st.success("file saved successfully")
-                    st.write("")
-                    st.header("Description")
-                    Description = st.text_area("Enter Description ")
-                    if st.button(" Save Description"):
-                        st.success("Description Saved Successfully")
-            elif task_status in ["Pending","In-Progress"]:
-                st.write("")
-                Description = st.text_area("Description", value="Description cannot be added")
-                st.info("Description cannot be edited for Pending or In-Progress ")
-            
-            if st.button("Add"):
-                task_data = {
-                    "user":user,
-                    "Task":Task,
-                    "Description":Description,
-                    "task_status":task_status
-                }
-                response = requests.post("http://127.0.0.1:8000/Details/",json = task_data)
-                if response.status_code==200:
-                    st.success("task completed successfully")
+            with b:
+                if task:
+                    if add:
+                        st.session_state['session_state'] = {'task': ''}
+                        url = local_host + "todo/?type=create"
+                        headers = {'Authorization': f'Bearer {token}'}
+                        params={
+                            "userName":UserName,
+                            "task":task,
+                            "discription":"",
+                            "status":"Pending",
+                        }        
+                        response = requests.get(url,headers=headers,params=params)
+                        if response.status_code == 200: 
+                            pass
+                        else:
+                            st.error("You dont have permission to create the task")
+                        
+                params={
+                            "userName":UserName,
+                        }     
+                
+                url = local_host + "todo/?type=read"
+                headers = {'Authorization': f'Bearer {token}'}
+                response = requests.get(url,headers=headers,params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    task = data['task']  
+                    for i in range(len(task)):
+                        tasks = st.checkbox(task[i],key=task[i])
+                        if tasks:
+                            with st.container():
+                                with st.form(key="forms",clear_on_submit=True):
+                                    description = st.text_area("Description")
+                                    file=st.file_uploader("please choose a file")
+                                    submit = st.form_submit_button("submit")
+                                    if description:
+                                        if submit :
+                                                url = local_host + "todo/?type=uploadfile"
+                                                headers = {'Authorization': f'Bearer {token}'}
+                                                params = {
+                                                    "userName":UserName,
+                                                    "description":description,
+                                                    "status":"Completed",
+                                                    "task":task[i],
+                                                }
+                                                files = {
+                                                    'file': file
+                                                }
+                                                st.success("Submited successfully")
+                                                response = requests.post(url,headers=headers,params=params,files=files)
+                                                if response.status_code == 200:
+                                                    st.success("WOW")
+                                                else:
+                                                    st.error("ERROR")     
                 else:
-                    st.error("failed to submit the task.please try again")
-                if task_status =='Complete':
+                    st.error(f'Error: {response.status_code}')
+                    
+                              
+        if selected == "History":
+            params={
+                    "userName":UserName,
+                }     
+            
+            url = local_host + "todo/?type=history"
+            headers = {'Authorization': f'Bearer {token}'}
+            response = requests.get(url,headers=headers,params=params)
+            
+                        
+            if response.status_code == 200:
+                data = response.json()
+                tasks = data['tasks']
+                files = data['files']
+                description = data['description']
+                st.header("Completed Tasks")
+                for i in range(len(tasks)):
+                    details = st.button(f'{i+1}.{tasks[i]}')
+                    # Apply CSS styles to hide the button structure
+                    button_style = """
+                        <style>
+                        .stButton>button {
+                            background: none;
+                            border: none;
+                            padding: 0;
+                            margin: 0;
+                            font-size: inherit;
+                            font-family: inherit;
+                            cursor: pointer;
+                            outline: inherit;
+                        }
+                        </style>
+                    """
 
+                    # Display the CSS styles
+                    st.markdown(button_style, unsafe_allow_html=True)
+                    if details:
+                        st.write("Description:", description[i])                        
+                        st.write("click the link to download the file:", files[i])         
+            else:
+                st.error("Failed to fetch data from the backend")
 
-                    uploaded_file = st.file_uploader("choose a file",type=["txt","csv","xlsx","pdf"])
-                    if uploaded_file is not None:
-                        df = pd.read_csv(uploaded_file)
-                        st.dataframe(df)
-                        if response.status_code == 200:
-                            st.success("task completed successfully")
-        
-    with col4:
-        selected = option_menu(
-            menu_title = "User Details",
-            options = ["Username","Profile"],
-            orientation= "horizontal"
-        )
+                       
+    with col2:
+        a,b = st.columns([5,5])
+        with b:
+            image = "/home/archana/Todo_Project/images/profile.jpeg"
+            st.image(image, caption=UserName, width=160)
