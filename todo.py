@@ -5,7 +5,7 @@ from streamlit_option_menu import option_menu
 
 
 st.set_page_config(layout="wide",initial_sidebar_state="expanded",)
-local_host = 'http://localhost:8000/'
+local_host = 'http://192.168.70.4:8006/'
 session_state = st.session_state
 def get_jwt_token(username, password):
     
