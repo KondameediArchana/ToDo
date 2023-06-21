@@ -228,5 +228,5 @@ if 'logged_in' in st.session_state and st.session_state['logged_in']:
     with col2:
         a,b = st.columns([5,5])
         with b:
-            image = "/home/archana/Project/images/kkkkkkk.png"
+            image = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQBXyZEZzKaWbA-HVEu4GK4u5_Z_YpVZarOHo9zqIlI81_mrWnHj1a21W8Roi3Luuh7VL8&usqp=CAU"
             st.image(image, caption=UserName, width=200)
